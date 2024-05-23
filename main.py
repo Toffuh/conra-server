@@ -25,12 +25,28 @@ def color_from_hex(hex_string: str) -> Color:
 class Player:
     def __init__(self):
         self.color = None
+        # -1 == left | 0 == stop | 1 == right
+        self.direction = 0
+        self.jump = False
+
+        self.pos = (0, 0)
 
     def set_color(self, color: Color):
         self.color = color
 
+    def set_direction(self, direction: str):
+        if direction == "left":
+            self.direction = -1
+        if direction == "right":
+            self.direction = 1
+        if direction == "stop":
+            self.direction = 0
+
+    def jump_now(self):
+        self.jump = True
+
     def __str__(self):
-        return "player: color-{}".format(self.color)
+        return "player: color-{} direction-{}".format(self.color, self.direction)
 
 
 players: [Player] = []
@@ -44,11 +60,16 @@ async def echo(websocket):
     players.append(player)
 
     async for message in websocket:
-        print("received message from {} - {}".format(client_id, message))
-
         if message.startswith("color:"):
             message = message.lstrip("color:")
             player.set_color(color_from_hex(message))
+
+        if message.startswith("direction:"):
+            message = message.replace("direction:", "")
+            player.set_direction(message)
+
+        if message.startswith("jump:"):
+            player.jump_now()
 
         await websocket.send(message)
 
@@ -61,12 +82,31 @@ class BackgroundRunner:
         self.value = 0
 
     async def draw(self):
-        print("draw")
+        # clear screen
+        print(40 * "\n")
+
+        for y in range(0, 9):
+            for x in range(0, 9):
+
+                has_player = False
+
+                for player in players:
+                    if player.pos[0] == x and player.pos[1] == y:
+                        has_player = True
+
+                if has_player:
+                    print("■", end="")
+                else:
+                    print(" ", end="")
+            print("")
+
+    def update(self):
         for player in players:
-            print(player)
+            player.pos = (player.pos[0] + player.direction, player.pos[1])
 
     async def draw_continuously(self):
         while True:
+            self.update()
             await self.draw()
             await asyncio.sleep(1 / 10)
 
