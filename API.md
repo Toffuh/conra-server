@@ -5,3 +5,7 @@
 ## API
 
 `color:#123254`
+
+`direction:left|stop|right`
+
+`jump:`
