@@ -5,6 +5,8 @@ from websockets.server import serve
 
 players = []
 
+screenWidth = 9
+
 
 class Color:
     def __init__(self, r: int, g: int, b: int):
@@ -85,8 +87,8 @@ class BackgroundRunner:
         # clear screen
         print(40 * "\n")
 
-        for y in range(0, 9):
-            for x in range(0, 9):
+        for y in range(0, screenWidth):
+            for x in range(0, screenWidth):
 
                 has_player = False
 
@@ -102,7 +104,12 @@ class BackgroundRunner:
 
     def update(self):
         for player in players:
-            player.pos = (player.pos[0] + player.direction, player.pos[1])
+            player.pos = (player.pos[0] + player.direction, max(player.pos[1] - 1, 0))
+            player.pos = (player.pos[0] % screenWidth, player.pos[1] % screenWidth)
+
+            if player.jump:
+                player.pos = (player.pos[0], player.pos[1] + 2)
+                player.jump = False
 
     async def draw_continuously(self):
         while True:
