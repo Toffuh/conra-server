@@ -1,6 +1,10 @@
 import asyncio
 import uuid
 
+from sense_hat import SenseHat
+
+sense = SenseHat()
+
 from websockets.server import serve
 
 players = []
@@ -88,22 +92,26 @@ class BackgroundRunner:
 
     async def draw(self):
         # clear screen
-        print(40 * "\n")
+        # print(40 * "\n")
+        #
+        # for y in range(0, screenWidth):
+        #     for x in range(0, screenWidth):
+        #
+        #         has_player = False
+        #
+        #         for player in players:
+        #             if player.pos[0] == x and player.pos[1] == y:
+        #                 has_player = True
+        #
+        #         if has_player:
+        #             print("■", end="")
+        #         else:
+        #             print(" ", end="")
+        #     print("")
 
-        for y in range(0, screenWidth):
-            for x in range(0, screenWidth):
-
-                has_player = False
-
-                for player in players:
-                    if player.pos[0] == x and player.pos[1] == y:
-                        has_player = True
-
-                if has_player:
-                    print("■", end="")
-                else:
-                    print(" ", end="")
-            print("")
+        sense.clear((0, 0, 0))
+        for player in players:
+            sense.set_pixel(player.pos[0], player.pos[1], (player.color.r, player.color.g, player.color.b))
 
     async def update(self):
         for player in players:
