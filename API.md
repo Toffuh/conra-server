@@ -4,8 +4,16 @@
 
 ## API
 
+#### request
+
 `color:#123254`
 
 `direction:left|stop|right`
 
 `jump:`
+
+#### response
+
+`dead:`
+
+`kill:`

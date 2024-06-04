@@ -25,11 +25,12 @@ def color_from_hex(hex_string: str) -> Color:
 
 
 class Player:
-    def __init__(self):
+    def __init__(self, websocket):
         self.color = None
         # -1 == left | 0 == stop | 1 == right
         self.direction = 0
         self.jump = False
+        self.websocket = websocket
 
         self.pos = (0, 0)
 
@@ -45,7 +46,7 @@ class Player:
             self.direction = 0
 
     def jump_now(self):
-        self.jump = True
+        self.jump = 2
 
     def __str__(self):
         return "player: color-{} direction-{}".format(self.color, self.direction)
@@ -58,8 +59,10 @@ async def echo(websocket):
     client_id = uuid.uuid4()
     print("user connected - {}".format(client_id))
 
-    player = Player()
+    player = Player(websocket)
     players.append(player)
+
+    print(len(players))
 
     async for message in websocket:
         if message.startswith("color:"):
@@ -102,18 +105,30 @@ class BackgroundRunner:
                     print(" ", end="")
             print("")
 
-    def update(self):
+    async def update(self):
         for player in players:
             player.pos = (player.pos[0] + player.direction, max(player.pos[1] - 1, 0))
             player.pos = (player.pos[0] % screenWidth, player.pos[1] % screenWidth)
 
-            if player.jump:
+            if player.jump == 2:
+                player.pos = (player.pos[0], player.pos[1] + 3)
+                player.jump = 1
+
+            if player.jump == 1:
                 player.pos = (player.pos[0], player.pos[1] + 2)
-                player.jump = False
+                player.jump = 0
+
+        for playerB in players:
+            for playerA in players:
+                if playerA.pos[0] == playerB.pos[0] and playerA.pos[1] + 1 == playerB.pos[1]:
+                    await playerB.websocket.send("kill:")
+                    await playerA.websocket.send("dead:")
+
+                    playerA.pos = (int(screenWidth / 2), screenWidth - 1)
 
     async def draw_continuously(self):
         while True:
-            self.update()
+            await self.update()
             await self.draw()
             await asyncio.sleep(1 / 10)
 
