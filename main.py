@@ -9,7 +9,7 @@ from websockets.server import serve
 
 players = []
 
-screenWidth = 9
+screenWidth = 8
 
 
 class Color:
@@ -24,7 +24,8 @@ class Color:
 
 def color_from_hex(hex_string: str) -> Color:
     hex_string = hex_string.lstrip("#")
-    values = tuple(int(hex_string[i:i + 2], 16) for i in (0, 2, 4))
+    print(hex_string)
+    values = tuple(int(hex_string[i:i + 2], 16) for i in (2, 4, 6))
     return Color(values[0], values[1], values[2])
 
 
@@ -43,14 +44,15 @@ class Player:
 
     def set_direction(self, direction: str):
         if direction == "left":
-            self.direction = -1
-        if direction == "right":
             self.direction = 1
+        if direction == "right":
+            self.direction = -1
         if direction == "stop":
             self.direction = 0
 
     def jump_now(self):
-        self.jump = 2
+        if self.pos[1] == 0:
+            self.jump = 2
 
     def __str__(self):
         return "player: color-{} direction-{}".format(self.color, self.direction)
@@ -111,20 +113,20 @@ class BackgroundRunner:
 
         sense.clear((0, 0, 0))
         for player in players:
-            sense.set_pixel(player.pos[0], player.pos[1], (player.color.r, player.color.g, player.color.b))
+            if player.color is not None and player.pos[1] <= 7:
+                sense.set_pixel(player.pos[0], player.pos[1], (player.color.r, player.color.g, player.color.b))
 
     async def update(self):
         for player in players:
             player.pos = (player.pos[0] + player.direction, max(player.pos[1] - 1, 0))
             player.pos = (player.pos[0] % screenWidth, player.pos[1] % screenWidth)
 
-            if player.jump == 2:
-                player.pos = (player.pos[0], player.pos[1] + 3)
-                player.jump = 1
-
             if player.jump == 1:
                 player.pos = (player.pos[0], player.pos[1] + 2)
                 player.jump = 0
+            if player.jump == 2:
+                player.pos = (player.pos[0], player.pos[1] + 3)
+                player.jump = 1
 
         for playerB in players:
             for playerA in players:
