@@ -140,7 +140,7 @@ class BackgroundRunner:
         while True:
             await self.update()
             await self.draw()
-            await asyncio.sleep(1 / 5)
+            await asyncio.sleep(1 / 10)
 
 
 runner = BackgroundRunner()
