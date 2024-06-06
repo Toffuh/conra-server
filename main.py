@@ -32,7 +32,6 @@ def color_from_hex(hex_string: str) -> Color:
 class Player:
     def __init__(self, websocket):
         self.color = None
-        # -1 == left | 0 == stop | 1 == right
         self.direction = 0
         self.jump = False
         self.websocket = websocket
@@ -52,7 +51,7 @@ class Player:
 
     def jump_now(self):
         if self.pos[1] == 0:
-            self.jump = 2
+            self.jump = 3
 
     def __str__(self):
         return "player: color-{} direction-{}".format(self.color, self.direction)
@@ -62,30 +61,34 @@ players: [Player] = []
 
 
 async def echo(websocket):
-    client_id = uuid.uuid4()
-    print("user connected - {}".format(client_id))
+    try:
+        client_id = uuid.uuid4()
+        print("user connected - {}".format(client_id))
 
-    player = Player(websocket)
-    players.append(player)
+        player = Player(websocket)
+        players.append(player)
 
-    print(len(players))
+        print(len(players))
 
-    async for message in websocket:
-        if message.startswith("color:"):
-            message = message.lstrip("color:")
-            player.set_color(color_from_hex(message))
+        async for message in websocket:
+            if message.startswith("color:"):
+                message = message.lstrip("color:")
+                player.set_color(color_from_hex(message))
 
-        if message.startswith("direction:"):
-            message = message.replace("direction:", "")
-            player.set_direction(message)
+            if message.startswith("direction:"):
+                message = message.replace("direction:", "")
+                player.set_direction(message)
 
-        if message.startswith("jump:"):
-            player.jump_now()
+            if message.startswith("jump:"):
+                player.jump_now()
 
-        await websocket.send(message)
+            await websocket.send(message)
 
-    print("user disconnected - {}".format(client_id))
-    players.remove(player)
+        print("user disconnected - {}".format(client_id))
+    except Exception as ignore:
+        print("")
+    finally:
+        players.remove(player)
 
 
 class BackgroundRunner:
@@ -93,24 +96,6 @@ class BackgroundRunner:
         self.value = 0
 
     async def draw(self):
-        # clear screen
-        # print(40 * "\n")
-        #
-        # for y in range(0, screenWidth):
-        #     for x in range(0, screenWidth):
-        #
-        #         has_player = False
-        #
-        #         for player in players:
-        #             if player.pos[0] == x and player.pos[1] == y:
-        #                 has_player = True
-        #
-        #         if has_player:
-        #             print("■", end="")
-        #         else:
-        #             print(" ", end="")
-        #     print("")
-
         sense.clear((0, 0, 0))
         for player in players:
             if player.color is not None and player.pos[1] <= 7:
@@ -118,15 +103,30 @@ class BackgroundRunner:
 
     async def update(self):
         for player in players:
-            player.pos = (player.pos[0] + player.direction, max(player.pos[1] - 1, 0))
-            player.pos = (player.pos[0] % screenWidth, player.pos[1] % screenWidth)
+
+            if player.pos[1] != 0:
+                player.pos = (player.pos[0] + player.direction, max(player.pos[1] - 1, 0))
+            else:
+                is_free = True
+
+                for playerB in players:
+                    if playerB.pos[1] == 0 and playerB.pos[0] == player.pos[0] + player.direction:
+                        is_free = False
+
+                if is_free:
+                    player.pos = (player.pos[0] + player.direction, max(player.pos[1] - 1, 0))
+
+            player.pos = (max(min(player.pos[0], screenWidth - 1), 0), player.pos[1] % screenWidth)
 
             if player.jump == 1:
                 player.pos = (player.pos[0], player.pos[1] + 2)
                 player.jump = 0
             if player.jump == 2:
-                player.pos = (player.pos[0], player.pos[1] + 3)
+                player.pos = (player.pos[0], player.pos[1] + 2)
                 player.jump = 1
+            if player.jump == 3:
+                player.pos = (player.pos[0], player.pos[1] + 2)
+                player.jump = 2
 
         for playerB in players:
             for playerA in players:
@@ -140,7 +140,7 @@ class BackgroundRunner:
         while True:
             await self.update()
             await self.draw()
-            await asyncio.sleep(1 / 10)
+            await asyncio.sleep(1 / 5)
 
 
 runner = BackgroundRunner()
